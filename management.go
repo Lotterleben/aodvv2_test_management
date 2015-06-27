@@ -41,7 +41,7 @@ type Riot_info struct {
 
 const MAX_LINE_LEN = 10
 
-const desvirt_path = "../../riot/desvirt_mehlis/ports.list"
+const desvirt_path = "../../../riot/desvirt_mehlis/ports.list"
 
 var riot_line []Riot_info /* the key is the position */
 
@@ -74,7 +74,18 @@ func get_content_type(str string) int {
 /* Set up the network. This will be switched to our own abstraction (hopefully soon). */
 func setup_network() {
 	fmt.Println("Setting up the network (this may take some seconds)...")
-	out, err := exec.Command("bash", "../mgmt.sh").Output()
+	/* Put together shell command which starts desvirt and our init script (TEMPORARY, FIXME) */
+	shellstuff := "cd /home/lotte/riot/desvirt_mehlis &&"+
+				  /* kill line in case it's still running */
+				  "./vnet -n line4 -q &&" +
+				  /* restart network */
+				  "./vnet -n line4 -s &&"+
+				  "cd /home/lotte/aodvv2/vnet_tester &&"+
+				  "./aodv_test.py -ds"
+
+	fmt.Println(shellstuff)
+
+	out, err := exec.Command("bash", "-c", shellstuff).Output()
 	fmt.Printf("Output:\n%s\nErrors:\n%s\n", out, err)
 	fmt.Println("done.")
 }
