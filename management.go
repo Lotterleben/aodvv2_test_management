@@ -17,6 +17,13 @@ import (
 	"time"
 )
 
+/*
+	improvements to be made
+	-----------------------
+	- make paths in setup_network() work on machines other than mine
+	- enable use of other topologies than line4
+*/
+
 /* content_type */
 const (
 	CONTENT_TYPE_JSON  = iota
@@ -25,6 +32,7 @@ const (
 
 /* better safe than sorry */
 const CHAN_BUF_SIZE = 500
+const EXPECT_TIMEOUT = 5 //seconds
 
 /* All channels for communication of a RIOT node */
 type stream_channels struct {
@@ -75,18 +83,20 @@ func get_content_type(str string) int {
 func setup_network() {
 	fmt.Println("Setting up the network (this may take some seconds)...")
 	/* Put together shell command which starts desvirt and our init script (TEMPORARY, FIXME) */
-	shellstuff := "cd /home/lotte/riot/desvirt_mehlis &&"+
+	shellstuff := "cd /home/lotte/aodvv2/aodvv2_demo &&" +
+				  "make &&" +
+				  "cd /home/lotte/riot/desvirt_mehlis &&" +
 				  /* kill line in case it's still running */
 				  "./vnet -n line4 -q &&" +
 				  /* restart network */
-				  "./vnet -n line4 -s &&"+
-				  "cd /home/lotte/aodvv2/vnet_tester &&"+
+				  "./vnet -n line4 -s &&" +
+				  "cd /home/lotte/aodvv2/vnet_tester &&" +
 				  "./aodv_test.py -ds"
 
 	fmt.Println(shellstuff)
 
-	out, err := exec.Command("bash", "-c", shellstuff).Output()
-	fmt.Printf("Output:\n%s\nErrors:\n%s\n", out, err)
+	_, err := exec.Command("bash", "-c", shellstuff).Output()
+	fmt.Printf("Errors:\n%s\n", err)
 	fmt.Println("done.")
 }
 
@@ -187,7 +197,8 @@ func (s stream_channels) Send(command string) {
 	s.snd <- command
 }
 
-/* Look for string matching exp in the channels */
+/* Look for string matching exp in the channels. If none is found,
+ * print an error message. */
 func (s stream_channels) Expect_JSON(expected_str string) {
 	expected := make(map[string]interface{})
 	received := make(map[string]interface{})
@@ -195,16 +206,32 @@ func (s stream_channels) Expect_JSON(expected_str string) {
 	err := json.Unmarshal([]byte(expected_str), &expected)
 	check(err)
 
-	for {
-		received_str := <-s.rcv_json
+	success := make(chan bool, 1)
 
-		err := json.Unmarshal([]byte(received_str), &received)
-		//fmt.Printf("expected: %s\nreceived: %s\n", expected_str, received_str)
-		check(err)
+	go func(){
+		for {
+			received_str := <-s.rcv_json
 
-		if reflect.DeepEqual(expected, received) {
-			return
+			err := json.Unmarshal([]byte(received_str), &received)
+			check(err)
+
+			if reflect.DeepEqual(expected, received) {
+				// This is the JSON we're looking for
+				success <- true
+				return
+			}
 		}
+	}()
+
+	select {
+		case <- success:
+			fmt.Print(".")
+			return
+		case <-time.After(time.Second * EXPECT_TIMEOUT):
+			// call timed out
+			// TODO: proper error msg
+			fmt.Printf("ERROR:\n expected:\n%s\nreceived:\n%s\n", expected_str, "asdf")
+			return
 	}
 }
 
@@ -213,7 +240,7 @@ func (s stream_channels) Expect_other(exp string) {
 	for {
 		content := <-s.rcv_other
 		if content == exp {
-			fmt.Println(exp)
+			fmt.Print(".")
 			return
 		}
 	}
@@ -302,6 +329,6 @@ func Create_clean_setup(experiment_id string) []Riot_info {
 	setup_network()
 	logdir_path := setup_logdir_path(experiment_id)
 	riots := connect_to_RIOTs(logdir_path)
-	fmt.Println("Setup done.")
+	fmt.Println("Setup done.\n")
 	return riots
 }
