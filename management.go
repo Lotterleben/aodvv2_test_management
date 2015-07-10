@@ -207,6 +207,7 @@ func (s stream_channels) Expect_JSON(expected_str string) {
 	check(err)
 
 	success := make(chan bool, 1)
+	received_log_str := ""
 
 	go func(){
 		for {
@@ -216,21 +217,26 @@ func (s stream_channels) Expect_JSON(expected_str string) {
 			check(err)
 
 			if reflect.DeepEqual(expected, received) {
-				// This is the JSON we're looking for
+				/* This is the JSON we're looking for */
 				success <- true
 				return
+			} else {
+				/* log the JSON we found on our way for possible error reporting */
+				received_log_str += received_str
 			}
 		}
 	}()
 
 	select {
 		case <- success:
+			/* JSON was found */
 			fmt.Print(".")
 			return
 		case <-time.After(time.Second * EXPECT_TIMEOUT):
-			// call timed out
-			// TODO: proper error msg
-			fmt.Printf("ERROR:\n expected:\n%s\nreceived:\n%s\n", expected_str, "asdf")
+			/* call timed out and we didn't find our JSON :( */
+			fmt.Printf("\nERROR:\nexpected:\n%s\n\nreceived "+
+					   "(may be empty due to earlier errors):\n%s\n",
+					   expected_str, received_log_str)
 			return
 	}
 }
