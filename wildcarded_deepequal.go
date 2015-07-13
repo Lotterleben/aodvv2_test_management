@@ -7,7 +7,6 @@
 package aodvv2_test_management
 
 import "reflect"
-import "fmt"
 
 /* if you want the value of a JSON field to be ignored by Expect_JSON(),
  * set it to this value. */
@@ -29,7 +28,6 @@ type visit struct {
 func deepValueEqual(v1, v2 reflect.Value, visited map[visit]bool, depth int) bool {
     if reflect.DeepEqual(v1.Interface(), WILDCARD) {
         /* catch the wildcard */
-        fmt.Println("xoxo")
         return true
     }
     if !v1.IsValid() || !v2.IsValid() {
