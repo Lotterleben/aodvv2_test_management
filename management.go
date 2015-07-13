@@ -50,8 +50,6 @@ const MAX_LINE_LEN = 10
 
 const desvirt_path = "../../../riot/desvirt_mehlis/ports.list"
 
-var riot_line []Riot_info /* the key is the position */
-
 func check(e error) {
 	if e != nil {
 		fmt.Println("OMG EVERYBODY PANIC")
@@ -251,8 +249,8 @@ func (s stream_channels) Expect_other(exp string) {
 	}
 }
 
-/* Goroutine at place index in the line which takes care of the RIOT behind port */
-func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string) {
+/* Goroutine which takes care of the RIOT behind port at place index in the line */
+func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string, riot_line *[]Riot_info) {
 	logfile_path := fmt.Sprintf("%s/riot_%d_port_%d.log", logdir_path, index, port)
 	logfile, err := os.Create(logfile_path)
 	check(err)
@@ -269,7 +267,7 @@ func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string) {
 	json_chan := make(chan string, CHAN_BUF_SIZE)  /* JSON messages from the RIOT */
 	other_chan := make(chan string, CHAN_BUF_SIZE) /* other messages from the RIOT */
 	channels := stream_channels{rcv_json: json_chan, rcv_other: other_chan, snd: send_chan}
-	riot_line[index].Channels = channels
+	(*riot_line)[index].Channels = channels
 
 	/*sort that stuff out*/
 	go channels.sort_stream(&conn, logger)
@@ -277,7 +275,6 @@ func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string) {
 	_, err = conn.Write([]byte("ifconfig\n"))
 	check(err)
 
-	fmt.Println(port, "/", index, ": getting my IP...")
 	/* find my IP address in the output */
 	for {
 		str := <-other_chan
@@ -285,7 +282,7 @@ func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string) {
 		match := r.FindAllStringSubmatch(str, -1)
 
 		if len(match) > 0 {
-			riot_line[index].Ip = match[0][1]
+			(*riot_line)[index].Ip = match[0][1]
 			fmt.Println(port, "/", index, ": my IP is", match[0][1])
 			break
 		}
@@ -312,13 +309,13 @@ func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string) {
 
 /* Set up connections to all RIOTs  */
 func connect_to_RIOTs(logdir_path string) []Riot_info {
-	riot_line = load_position_port_info_line(desvirt_path)
+	riot_line := load_position_port_info_line(desvirt_path)
 
 	var wg sync.WaitGroup
 	wg.Add(len(riot_line))
 
 	for index, elem := range riot_line {
-		go control_riot(index, elem.Port, &wg, logdir_path)
+		go control_riot(index, elem.Port, &wg, logdir_path, &riot_line)
 	}
 
 	/* wait for all goroutines to finish setup before we go on */
