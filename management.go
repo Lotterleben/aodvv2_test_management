@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -216,7 +215,7 @@ func (s stream_channels) Expect_JSON(expected_str string) {
 			err := json.Unmarshal([]byte(received_str), &received)
 			check(err)
 
-			if reflect.DeepEqual(expected, received) {
+			if wildcardedDeepEqual(expected, received) {
 				/* This is the JSON we're looking for */
 				success <- true
 				return
