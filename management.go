@@ -87,10 +87,6 @@ func setup_network() {
 				  "./vnet -n line4 -q &&" +
 				  /* restart network */
 				  "./vnet -n line4 -s &&" +
-				  "cd /home/lotte/aodvv2/vnet_tester &&" +
-				  "./aodv_test.py -ds"
-
-	fmt.Println(shellstuff)
 
 	_, err := exec.Command("bash", "-c", shellstuff).Output()
 	fmt.Printf("Errors:\n%s\n", err)
