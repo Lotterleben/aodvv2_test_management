@@ -1,5 +1,10 @@
 package aodvv2_test_management
 
+import (
+    "bytes"
+    "text/template"
+)
+
 /* route states */
 const
 (
@@ -48,3 +53,14 @@ const Tmpl_received_rrep = "{\"log_type\": \"received_rrep\", "+
                                 "\"orig_seqnum\": {{.Orig_seqnum}}, "+
                                 "\"targ_addr\": \"{{.Targ_addr}}\", "+
                                 "\"targ_seqnum\": {{.Targ_seqnum}}}}"
+
+/* Create a JSON string from a given template (tmpl) and map containing the values
+ * to be added to the template (data). */
+func Make_JSON_str(tmpl string, data map[string]string) string {
+    strbuf := new(bytes.Buffer)
+    t, _ := template.New("test").Parse(tmpl)
+    // TODO: get writer to write to string, return string
+    err := t.Execute(strbuf, data)
+    check(err)
+    return strbuf.String()
+}
