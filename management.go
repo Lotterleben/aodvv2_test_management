@@ -81,7 +81,7 @@ func setup_network() {
 	fmt.Println("Setting up the network (this may take some seconds)...")
 	/* Put together shell command which starts desvirt and our init script (TEMPORARY, FIXME) */
 	shellstuff := "cd /home/lotte/aodvv2/aodvv2_demo &&" +
-				  "make &&" +
+				  "make clean all &&" +
 				  "cd /home/lotte/riot/desvirt_mehlis &&" +
 				  /* kill line in case it's still running */
 				  "./vnet -n line4 -q &&" +
