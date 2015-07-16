@@ -48,7 +48,7 @@ type Riot_info struct {
 
 const MAX_LINE_LEN = 10
 
-const desvirt_path = "../../../riot/desvirt_mehlis/ports.list"
+const desvirt_path = "/home/lotte/riot/desvirt_mehlis/ports.list"
 
 func check(e error) {
 	if e != nil {
