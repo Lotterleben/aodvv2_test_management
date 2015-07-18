@@ -86,9 +86,10 @@ func setup_network() {
 				  /* kill line in case it's still running */
 				  "./vnet -n line4 -q &&" +
 				  /* restart network */
-				  "./vnet -n line4 -s &&" +
+				  "./vnet -n line4 -s &&"
 
-	_, err := exec.Command("bash", "-c", shellstuff).Output()
+	out, err := exec.Command("bash", "-c", shellstuff).Output()
+    fmt.Printf("Output:\n%s\n", out)
 	fmt.Printf("Errors:\n%s\n", err)
 	fmt.Println("done.")
 }
