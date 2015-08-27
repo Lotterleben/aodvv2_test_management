@@ -213,6 +213,7 @@ func (s stream_channels) Expect_JSON(expected_str string) {
 			if wildcardedDeepEqual(expected, received) {
 				/* This is the JSON we're looking for */
 				success <- true
+				//fmt.Printf("successfully found:\n%s\n", received_str)
 				return
 			} else {
 				/* log the JSON we found on our way for possible error reporting */
@@ -275,7 +276,7 @@ func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string, r
 	/* find my IP address in the output */
 	for {
 		str := <-other_chan
-		r, _ := regexp.Compile("inet6 addr: (fe80(.*))/.*scope: local")
+		r, _ := regexp.Compile("inet6 addr: (.*)/.*scope: global")
 		match := r.FindAllStringSubmatch(str, -1)
 
 		if len(match) > 0 {
