@@ -13,7 +13,11 @@ TODO
 ## Writing tests
 The main idea is that you trigger some kind of action in one (or more) RIOTs and check if the other RIOTs respond as expected. The former is accomplished by sending a valid command to a RIOT (If the default set of shell commands don't do what you want your RIOT to do, you'll have to write your own):
 
+<<<<<<< HEAD
 ```go
+=======
+```c
+>>>>>>> ng_testing
 /* run our custom send command on the first RIOT of the line */
 riot_line := mgmt.Create_clean_setup("my_first_test")
 riot_line[0].Channels.Send(fmt.Sprintf("send %s %s\n", end.Ip, mgmt.Test_string))
@@ -21,7 +25,7 @@ riot_line[0].Channels.Send(fmt.Sprintf("send %s %s\n", end.Ip, mgmt.Test_string)
 
 Now, we can query all RIOTs in the line about the data they've received, processed and sent. More specifically, we can specify what we *expect* them to have received/output/sent, yielding an error if this is not the case:
 
-```go
+```c
 /* Discover route at node 0...  */
 riot_line[0].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rreq, map[string]string{
     "Orig_addr": beginning.Ip,
@@ -53,9 +57,10 @@ riot_line[1].Channels.Expect_JSON(mgmt.Make_JSON_str(mgmt.Tmpl_sent_rreq, map[st
 }))
 
 /* check node 2... */
-``
+```
 
 Full examples for these tests can be found in https://github.com/Lotterleben/aodvv2_test_blackboxtests.
+
 
 (Note that the code you're trying to test has to output the information you're looking for as a JSON in order for this to work.)
 
