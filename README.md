@@ -13,11 +13,8 @@ TODO
 ## Writing tests
 The main idea is that you trigger some kind of action in one (or more) RIOTs and check if the other RIOTs respond as expected. The former is accomplished by sending a valid command to a RIOT (If the default set of shell commands don't do what you want your RIOT to do, you'll have to write your own):
 
-<<<<<<< HEAD
-```go
-=======
 ```c
->>>>>>> ng_testing
+
 /* run our custom send command on the first RIOT of the line */
 riot_line := mgmt.Create_clean_setup("my_first_test")
 riot_line[0].Channels.Send(fmt.Sprintf("send %s %s\n", end.Ip, mgmt.Test_string))
