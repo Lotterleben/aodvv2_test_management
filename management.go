@@ -49,11 +49,12 @@ type Riot_info struct {
 const MAX_LINE_LEN = 10
 
 const desvirt_path = "/home/lotte/riot/desvirt/ports.list"
+const shutdown_message = "mgmt.shutdown"
 
 func check(e error) {
 	if e != nil {
 		fmt.Println("OMG EVERYBODY PANIC")
-		panic(e)
+		//panic(e)
 	}
 }
 
@@ -247,8 +248,35 @@ func (s stream_channels) Expect_other(exp string) {
 	}
 }
 
+/* Properly shut down RIOT instance when the experiment is done. */
+func shutdown_riot(port int) {
+	fmt.Println("Shutting down RIOT at port", port, "...")
+
+	/* Find the PID of this RIOT by its port number.
+	   pgrep -P gives us the parent and that's the one we want to kill */
+	child, err := exec.Command("bash", "-c", fmt.Sprintf("lsof -i:%d -t", port)).Output()
+	check(err)
+
+	/* For some reason lsof spits out several pids here so we'll have to
+	   cut off the irrelevant ones before passing it tp prgep */
+	find_pid := fmt.Sprintf("pgrep -P %s", strings.Split(string(child), "\n")[0])
+	check(err)
+
+	find_out, err := exec.Command("bash", "-c", find_pid).Output()
+	check(err)
+
+	/* same thing: more than one result.. cut the weird stuff off */
+	kill := fmt.Sprintf("kill -9 %s", strings.Split(string(find_out), "\n")[0])
+	kill_out, err := exec.Command("bash", "-c", kill).Output()
+	//check(err)
+	fmt.Println(err)
+	fmt.Println(kill_out)
+}
+
 /* Goroutine which takes care of the RIOT behind port at place index in the line */
 func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string, riot_line *[]Riot_info) {
+	fmt.Println("my port: ", (*riot_line)[index].Port)
+
 	logfile_path := fmt.Sprintf("%s/riot_%d_port_%d.log", logdir_path, index, port)
 	logfile, err := os.Create(logfile_path)
 	check(err)
@@ -294,6 +322,13 @@ func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string, r
 	for {
 		message := <-send_chan
 
+		if message == shutdown_message {
+			/* party's over, time to go home*/
+			logger.Println("xxshutdown")
+			fmt.Println("received shutdown message")
+			shutdown_riot((*riot_line)[index].Port)
+			return
+		}
 		if !strings.HasSuffix(message, "\n") {
 			// make sure command ends with a newline
 			message = fmt.Sprint(message, "\n")
@@ -331,4 +366,17 @@ func Create_clean_setup(experiment_id string) []Riot_info {
 	riots := connect_to_RIOTs(logdir_path)
 	fmt.Println("Setup done.\n")
 	return riots
+}
+
+func Tear_down_setup(experiment_id string, riots []Riot_info) {
+	fmt.Println("Shutting down ", experiment_id, " :")
+
+
+	for _,r := range riots {
+		// tell all riots to shut down
+		fmt.Println(r)
+		shutdown_riot(r.Port)
+	}
+
+	// TODO: run vnet -q
 }
