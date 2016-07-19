@@ -8,7 +8,21 @@ note that:
 
 # Usage
 ## Prerequisites
-TODO
+
+### Setting up DesVirt
+1. Clone desvirt [desvirt](https://github.com/Lotterleben/desvirt/tree/line_fix_2), change into the directory ind run `./setup.py build install`
+2. Create a topology (test mgmt currently only works with line topologies)
+
+    ./topology_creator --node-type riot_native --type line --binary-file path/to/your/binary --size <number of nodes you want in the network>
+
+This should return something like:
+
+    created: .desvirt/line4.xml
+
+This tells you the name of your topology (in this case, "line4"). Use that to set up the topology:
+
+    ./vnet --define --name "<name of your topology>"
+
 
 ## Writing tests
 The main idea is that you trigger some kind of action in one (or more) RIOTs and check if the other RIOTs respond as expected. The former is accomplished by sending a valid command to a RIOT (If the default set of shell commands don't do what you want your RIOT to do, you'll have to write your own):
