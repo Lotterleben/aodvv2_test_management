@@ -49,7 +49,7 @@ type Riot_info struct {
 const MAX_LINE_LEN = 10
 
 const desvirt_path = "/home/lotte/riot/desvirt/ports.list"
-const shutdown_message = "mgmt.shutdown"
+const shutdown_msg = "exit\n"
 
 func check(e error) {
 	if e != nil {
@@ -62,7 +62,7 @@ func check_str(s string, e error) {
 	if e != nil {
 		fmt.Println("OMG EVERYBODY PANIC")
 		fmt.Println("Offending string: ", s)
-		panic(e)
+		//panic(e)
 	}
 }
 
@@ -87,7 +87,7 @@ func setup_network() {
 				  /* kill line in case it's still running TODO: check whether it's running and kill only then*/
 				  "./vnet -n line4 -q &&" +
 				  /* restart network */
-				  "./vnet -n line4 -s &&"
+				  "./vnet -n line4 -s&&"
 
 	out, err := exec.Command("bash", "-c", shellstuff).Output()
 	fmt.Printf("Output:\n%s\n", out)
@@ -161,7 +161,10 @@ func (s stream_channels) sort_stream(conn *net.Conn, logger *log.Logger) {
 
 	for {
 		str, err := reader.ReadString('\n')
-		check_str(str, err)
+		if err != nil {
+			//something went wrong, stop sorting
+			return
+		}
 
 		if len(str) > 0 {
 			if strings.HasPrefix(str, ">") {
@@ -169,6 +172,12 @@ func (s stream_channels) sort_stream(conn *net.Conn, logger *log.Logger) {
 				s.rcv_other <- ">\n"
 				/* remove > from str*/
 				str = strings.TrimPrefix(str, "> ")
+			}
+
+			if str == "EOF" {
+				// TODO properly
+				fmt.Println("found an eof")
+				break
 			}
 
 			/* If there's something left, log, check line content and sort */
@@ -257,20 +266,17 @@ func shutdown_riot(port int) {
 	child, err := exec.Command("bash", "-c", fmt.Sprintf("lsof -i:%d -t", port)).Output()
 	check(err)
 
-	/* For some reason lsof spits out several pids here so we'll have to
-	   cut off the irrelevant ones before passing it tp prgep */
+	// For some reason lsof spits out several pids here so we'll have to
+	// cut off the irrelevant ones before passing it tp prgep
 	find_pid := fmt.Sprintf("pgrep -P %s", strings.Split(string(child), "\n")[0])
 	check(err)
 
 	find_out, err := exec.Command("bash", "-c", find_pid).Output()
 	check(err)
 
-	/* same thing: more than one result.. cut the weird stuff off */
+	// same thing: more than one result.. cut the weird stuff off
 	kill := fmt.Sprintf("kill -9 %s", strings.Split(string(find_out), "\n")[0])
-	kill_out, err := exec.Command("bash", "-c", kill).Output()
-	//check(err)
-	fmt.Println(err)
-	fmt.Println(kill_out)
+	exec.Command("bash", "-c", kill).Output()
 }
 
 /* Goroutine which takes care of the RIOT behind port at place index in the line */
@@ -322,13 +328,6 @@ func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string, r
 	for {
 		message := <-send_chan
 
-		if message == shutdown_message {
-			/* party's over, time to go home*/
-			logger.Println("xxshutdown")
-			fmt.Println("received shutdown message")
-			shutdown_riot((*riot_line)[index].Port)
-			return
-		}
 		if !strings.HasSuffix(message, "\n") {
 			// make sure command ends with a newline
 			message = fmt.Sprint(message, "\n")
@@ -337,6 +336,12 @@ func control_riot(index int, port int, wg *sync.WaitGroup, logdir_path string, r
 		logger.Print(message)
 		_, err := conn.Write([]byte(message))
 		check(err)
+
+		if message == shutdown_msg {
+			fmt.Println("time to go home")
+			return
+		}
+
 	}
 }
 
@@ -373,10 +378,16 @@ func Tear_down_setup(experiment_id string, riots []Riot_info) {
 
 
 	for _,r := range riots {
-		// tell all riots to shut down
-		fmt.Println(r)
-		shutdown_riot(r.Port)
+		/* tell all riots to shut down (not pretty, but it works for now) */
+		//shutdown_riot(r.Port)
+		r.Channels.snd <- shutdown_msg
+		time.Sleep(2 * time.Second)
 	}
 
+	fmt.Println("Shutting down desvirt...")
 	// TODO: run vnet -q
+	out, err := exec.Command("bash", "-c", "cd /home/lotte/riot/desvirt &&"+
+							 "./vnet -n line4 -q").Output()
+	check(err) // TODO: this yields an error
+	fmt.Println(out)
 }
