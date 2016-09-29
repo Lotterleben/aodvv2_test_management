@@ -81,11 +81,11 @@ func get_content_type(str string) int {
 func setup_network() {
 	fmt.Println("Setting up the network (this may take some seconds)...")
 	/* Put together shell command which starts desvirt and our init script (TEMPORARY, FIXME) */
-	shellstuff := "cd /home/lotte/aodvv2/aodvv2_demo &&" +
+	shellstuff := "cd /home/lotte/riot/RIOT/examples/gnrc_aodvv2 &&" +
 				  "make clean all &&" +
 				  "cd /home/lotte/riot/desvirt &&" +
 				  /* kill line in case it's still running TODO: check whether it's running and kill only then*/
-				  "./vnet -n line4 -q &&" +
+				  /*"./vnet -n line4 -q &&" +*/
 				  /* restart network */
 				  "./vnet -n line4 -s&&"
 
